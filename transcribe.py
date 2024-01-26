@@ -1,53 +1,45 @@
 import whisper
-import textwrap
 import time
 
-start_time = time.time()  # Startar tidtagningen (för referens om hur)
+# Ange sökvägen till din video
+video_file = "ditt-filnamn.filtyp"
 
-
-# Steg 1 
 def transcribe_video(file_path):
-    model = whisper.load_model("medium")  # Eller en annan modellstorlek som 'small', 'medium', 'large'
+    model = whisper.load_model("medium")
     result = model.transcribe(file_path)
-    return result['text']
+    return result
 
-video_file = "ditt-filnamn.filtyp"  # Byt ut mot sökvägen till din ljudfil
-transcribed_text = transcribe_video(video_file)
-
-# Steg 2
-def chunk_text(text, max_length=50): #Dela upp text i mindre bitar
-    chunks = textwrap.wrap(text, max_length)
-    return chunks
-
-chunks = chunk_text(transcribed_text)
-
-# Steg 3
-def format_srt(chunks, char_per_second=15):  # tecken per sekund 
+def format_srt(segments):
     srt_format = ""
-    start_time = 0
-    for i, chunk in enumerate(chunks, 1):
-        # Uppskattar varaktigheten baserat på antalet tecken
-        duration = len(chunk) / char_per_second
-        end_time = start_time + duration
+    counter = 1
 
-        # Formaterar tidsstämplarna för Youtube
-        start_timestamp = f"{int(start_time//3600):02}:{int((start_time%3600)//60):02}:{int(start_time%60):02},000"
-        end_timestamp = f"{int(end_time//3600):02}:{int((end_time%3600)//60):02}:{int(end_time%60):02},000"
+    for segment in segments:
+        start_time = segment['start']
+        end_time = segment['end']
+        text = segment['text']
 
-        srt_format += f"{i}\n{start_timestamp} --> {end_timestamp}\n{chunk}\n\n"
-        start_time = end_time
+        # Formatera tidsstämplarna
+        start_timestamp = time.strftime('%H:%M:%S,', time.gmtime(start_time)) + f"{int(start_time % 1 * 1000):03}"
+        end_timestamp = time.strftime('%H:%M:%S,', time.gmtime(end_time)) + f"{int(end_time % 1 * 1000):03}"
+
+        srt_format += f"{counter}\n{start_timestamp} --> {end_timestamp}\n{text.strip()}\n\n"
+        counter += 1
 
     return srt_format
 
-srt_text = format_srt(chunks)
-print(srt_text)
+# Starta tidtagning
+start_time = time.time()
 
-# Steg 4
+# Transkribera videon
+transcription_result = transcribe_video(video_file)
+
+# Skapa SRT text från transkriptionens segment
+srt_text = format_srt(transcription_result['segments'])
+
+# Spara SRT text till en fil
 with open("undertexter.srt", "w") as file:
     file.write(srt_text)
 
-# Beräkna total tid
-end_time = time.time() # Avsluta tidtagningen 
-total_time_seconds = end_time - start_time
-total_time_minutes = total_time_seconds / 60  # Konverterar tiden till minuter
-print(f"Total tid för processen: {total_time_minutes:.2f} minuter")
+# Beräkna och skriv ut total tid för processen
+total_time_seconds = time.time() - start_time
+print(f"Total tid för processen: {total_time_seconds / 60:.2f} minuter")
