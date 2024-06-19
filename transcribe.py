@@ -91,7 +91,7 @@ modified_segments = split_long_segments(transcription_result['segments'])
 srt_text = format_srt(modified_segments)
 
 # Spara SRT text till en fil
-with open(video_file + "-" + "undertexter.srt", "w") as file:
+with open(video_file.replace(".mp4", "") + "-" + "undertexter.srt", "w") as file:
     file.write(srt_text)
 
 # Beräkna och skriv ut total tid för processen
